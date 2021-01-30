@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import Router from 'next/router';
+import useSWR from 'swr';
 import { gql } from 'graphql-request';
 import { useForm } from 'react-hook-form';
 import Layout from '../components/layout';
 import utilStyles from '../styles/utils.module.css';
 import { graphQLClient } from '../utils/graphql-client';
+import { getAuthCookie } from '../utils/auth-cookies';
 
-const New = () => {
+const New = ({ token }) => {
+  const { data: user } = useSWR('api/user');
+
   const [errorMessage, setErrorMessage] = useState('');
 
   const { handleSubmit, register, errors } = useForm();
@@ -14,17 +18,27 @@ const New = () => {
   const onSubmit = handleSubmit(async ({ task }) => {
     if (errorMessage) setErrorMessage('');
 
-    const query = gql`
-      mutation CreateATodo($task: String!) {
-        createTodo(data: { task: $task, completed: false }) {
+    const mutation = gql`
+      mutation CreateATodo($task: String!, $owner: ID!) {
+        createTodo(
+          data: { task: $task, completed: false, owner: { connect: $owner } }
+        ) {
           task
           completed
+          owner {
+            _id
+          }
         }
       }
     `;
 
+    const variables = {
+      task,
+      owner: user && user.id,
+    };
+
     try {
-      await graphQLClient.request(query, { task });
+      await graphQLClient(token).request(mutation, variables);
       Router.push('/');
     } catch (error) {
       console.error(error);
@@ -65,5 +79,10 @@ const New = () => {
     </Layout>
   );
 };
+
+export async function getServerSideProps(ctx) {
+  const token = getAuthCookie(ctx.req);
+  return { props: { token: token || null } };
+}
 
 export default New;

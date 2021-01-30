@@ -9,7 +9,9 @@
   font-weight: 600;
 }
 
-.form input[type='text'] {
+.form input[type='text'],
+.form input[type='email'],
+.form input[type='password'] {
   width: 100%;
   border: 1px solid #ccc;
   border-radius: 4px;

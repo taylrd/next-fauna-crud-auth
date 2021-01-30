@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import utilStyles from '../styles/utils.module.css';
 import { graphQLClient } from '../utils/graphql-client';
 
-const EditForm = ({ defaultValues, id }) => {
+const EditForm = ({ defaultValues, id, token }) => {
   const [errorMessage, setErrorMessage] = useState('');
 
   const { handleSubmit, register, reset, errors } = useForm({
@@ -33,7 +33,7 @@ const EditForm = ({ defaultValues, id }) => {
     };
 
     try {
-      await graphQLClient.request(query, variables);
+      await graphQLClient(token).request(query, variables);
       Router.push('/');
     } catch (error) {
       console.error(error);

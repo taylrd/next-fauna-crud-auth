@@ -4,10 +4,10 @@ import { gql } from 'graphql-request';
 import Layout from '../components/layout';
 import styles from '../styles/Home.module.css';
 import { graphQLClient } from '../utils/graphql-client';
+import { getAuthCookie } from '../utils/auth-cookies';
 
-const fetcher = async (query) => await graphQLClient.request(query);
-
-const Home = () => {
+const Home = ({ token }) => {
+  const fetcher = async (query) => await graphQLClient(token).request(query);
   const { data, error, mutate } = useSWR(
     gql`
       {
@@ -39,7 +39,9 @@ const Home = () => {
     };
 
     try {
-      await graphQLClient.request(query, variables);
+      await graphQLClient(token)
+        .setHeader('X-Schema-Preview', 'partial-update-mutation')
+        .request(query, variables);
       mutate();
     } catch (error) {
       console.error(error);
@@ -63,7 +65,12 @@ const Home = () => {
     }
   };
 
-  if (error) return <div>failed to load</div>;
+  if (error)
+    return (
+      <Layout>
+        <div>Failed to load</div>
+      </Layout>
+    );
 
   return (
     <Layout>
@@ -107,5 +114,10 @@ const Home = () => {
     </Layout>
   );
 };
+
+export async function getServerSideProps(ctx) {
+  const token = getAuthCookie(ctx.req);
+  return { props: { token: token || null } };
+}
 
 export default Home;
