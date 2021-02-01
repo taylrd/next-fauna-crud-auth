@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useForm } from 'react-hook-form';
+import ReCAPTCHA from 'react-google-recaptcha';
 import Layout from '../components/layout';
 import utilStyles from '../styles/utils.module.css';
 
@@ -11,8 +12,13 @@ const Signup = () => {
 
   const { handleSubmit, register, watch, errors } = useForm();
 
+  const reRef = useRef();
+
   const onSubmit = handleSubmit(async (formData) => {
     if (errorMessage) setErrorMessage('');
+
+    const googleToken = await reRef.current.executeAsync();
+    reRef.current.reset();
 
     try {
       const res = await fetch('/api/signup', {
@@ -20,7 +26,11 @@ const Signup = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          email: formData.email.toLowerCase(),
+          password: formData.password,
+          googleToken,
+        }),
       });
 
       if (res.ok) {
@@ -60,7 +70,20 @@ const Signup = () => {
             type="password"
             name="password"
             placeholder="e.g. John-1234"
-            ref={register({ required: 'Password is required' })}
+            ref={register({
+              required: 'Password is required',
+              minLength: {
+                value: 8,
+                message: 'must be 8 chars',
+              },
+              validate: (value) => {
+                return (
+                  [/[a-z]/, /[A-Z]/, /[0-9]/, /[^a-zA-Z0-9]/].every((pattern) =>
+                    pattern.test(value)
+                  ) || 'must include lower, upper, number, and special chars'
+                );
+              },
+            })}
           />
           {errors.password && (
             <span role="alert" className={utilStyles.error}>
@@ -91,6 +114,12 @@ const Signup = () => {
           <button type="submit">Sign up</button>
         </div>
       </form>
+
+      <ReCAPTCHA
+        sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+        size="invisible"
+        ref={reRef}
+      />
 
       {errorMessage && (
         <p role="alert" className={utilStyles.errorMessage}>

@@ -1,0 +1,16 @@
+type Studio {
+  studioName: String! @unique
+  street: String!
+  city: String!
+  state: String!
+  zipcode: Int!
+  phone: Int!
+  website: String
+  studioEmail: String!
+  type: AllowedRegisterType!
+}
+
+enum AllowedRegisterType {
+  STUDIO
+  INDIVIDUAL
+}

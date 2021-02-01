@@ -3,7 +3,14 @@ import { guestClient } from '../../utils/fauna-client';
 import { setAuthCookie } from '../../utils/auth-cookies';
 
 export default async function signup(req, res) {
-  const { email, password } = req.body;
+  const { email, password, googleToken } = req.body;
+
+  const human = await validateHuman(googleToken);
+  if (!human) {
+    res.status(400);
+    res.json({ errors: ['Please, you are not fooling us, bot.'] });
+    return;
+  }
 
   if (!email || !password) {
     return res.status(400).send('Email and Password not provided');
@@ -42,9 +49,22 @@ export default async function signup(req, res) {
 
     setAuthCookie(res, auth.secret);
 
-    res.status(200).end();
+    res.status(201).end();
   } catch (error) {
     console.error(error);
     res.status(error.requestResult.statusCode).send(error.message);
   }
+}
+
+async function validateHuman(googleToken) {
+  const secret = process.env.RECAPTCHA_SECRET_KEY;
+  const res = await fetch(
+    `https://www.google.com/recaptcha/api/siteverify?secret=${secret}&response=${googleToken}`,
+    {
+      method: 'POST',
+    }
+  );
+
+  const data = await res.json();
+  return data.success;
 }
